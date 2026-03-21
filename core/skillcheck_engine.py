@@ -14,11 +14,14 @@ from config import (
     COULROPHOBIA_SPEED_MULT,
     MADNESS_OFFSET_RANGE,
     MADNESS_DIRECTION_FLIP_CHANCE,
+    CHILL_MIN_INTERVAL,
+    CHILL_MAX_INTERVAL,
     MOD_MERCILESS_STORM,
     MOD_UNNERVING_PRESENCE,
     MOD_REVERSE,
     MOD_COULROPHOBIA,
     MOD_INSANITY,
+    MOD_CHILL,
 )
 
 
@@ -83,7 +86,10 @@ class SkillCheckEngine(QObject):
     def _schedule_next(self):
         if not self.running:
             return
-        interval = random.uniform(self.min_interval, self.max_interval)
+        if MOD_CHILL in self.active_modifiers:
+            interval = random.uniform(CHILL_MIN_INTERVAL, CHILL_MAX_INTERVAL)
+        else:
+            interval = random.uniform(self.min_interval, self.max_interval)
         self._spawn_timer.start(int(interval * 1000))
 
     def _trigger_check(self):

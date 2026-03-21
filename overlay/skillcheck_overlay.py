@@ -1,4 +1,5 @@
 import math
+import os
 import time
 import ctypes
 from enum import Enum, auto
@@ -10,6 +11,7 @@ from PySide6.QtGui import (
     QColor,
     QBrush,
     QFont,
+    QPixmap,
     QRadialGradient,
     QFontMetrics,
 )
@@ -22,6 +24,7 @@ from config import (
     RESULT_DISPLAY_MS,
     WARNING_DURATION_MS,
     SKILL_CHECK_TIMEOUT_BUFFER,
+    JUMPSCARE_DISPLAY_MS,
 )
 
 
@@ -30,6 +33,7 @@ class _State(Enum):
     WARNING = auto()
     ACTIVE = auto()
     RESULT = auto()
+    JUMPSCARE = auto()
 
 
 class SkillCheckOverlay(QWidget):
@@ -54,6 +58,11 @@ class SkillCheckOverlay(QWidget):
         super().__init__(parent)
         self._sounds = sound_manager
         self.hotkey_label: str = "SPACE"
+        self.jumpscare_enabled: bool = False
+
+        # Load jumpscare image
+        _img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jumpscare.png")
+        self._jumpscare_pixmap = QPixmap(_img_path) if os.path.isfile(_img_path) else None
         # Window behaviour – frameless, topmost, no taskbar entry
         self.setWindowFlags(
             Qt.FramelessWindowHint
@@ -93,6 +102,10 @@ class SkillCheckOverlay(QWidget):
         self._result_timer = QTimer(self)
         self._result_timer.setSingleShot(True)
         self._result_timer.timeout.connect(self._on_result_done)
+
+        self._jumpscare_timer = QTimer(self)
+        self._jumpscare_timer.setSingleShot(True)
+        self._jumpscare_timer.timeout.connect(self._on_jumpscare_done)
 
         self._warning_timer = QTimer(self)
         self._warning_timer.setSingleShot(True)
@@ -157,7 +170,8 @@ class SkillCheckOverlay(QWidget):
         if self._sounds:
             self._sounds.play_cue()
 
-        self.update()
+        # Synchronous repaint so the stale backing-store is never visible
+        self.repaint()
         self._warning_timer.start(WARNING_DURATION_MS)
 
     def on_key_pressed(self):
@@ -176,6 +190,7 @@ class SkillCheckOverlay(QWidget):
         """Immediately dismiss any active skill check."""
         self._stop_all_timers()
         self._state = _State.HIDDEN
+        self.repaint()   # clear backing store
         self.hide()
 
     # ==================================================================
@@ -225,9 +240,31 @@ class SkillCheckOverlay(QWidget):
         result = self._pending_result
         reaction = self._pending_reaction
         is_storm = self._config and self._config.storm
+
+        # Trigger jumpscare on fail/miss if enabled
+        if (self.jumpscare_enabled
+                and result in ("fail", "miss")
+                and not is_storm
+                and self._jumpscare_pixmap):
+            self._state = _State.JUMPSCARE
+            if self._sounds:
+                self._sounds.play_jumpscare()
+            self.repaint()
+            self._jumpscare_timer.start(JUMPSCARE_DISPLAY_MS)
+            return
+
         if not is_storm:
             self._state = _State.HIDDEN
+            self.repaint()   # clear backing store to transparent before hiding
             self.hide()
+        self.check_completed.emit(result, reaction)
+
+    def _on_jumpscare_done(self):
+        result = self._pending_result
+        reaction = self._pending_reaction
+        self._state = _State.HIDDEN
+        self.repaint()   # clear backing store
+        self.hide()
         self.check_completed.emit(result, reaction)
 
     # ==================================================================
@@ -287,6 +324,18 @@ class SkillCheckOverlay(QWidget):
     # ==================================================================
     def paintEvent(self, event):  # noqa: N802
         if self._state == _State.HIDDEN:
+            return
+
+        # -- Jumpscare fullscreen image --
+        if self._state == _State.JUMPSCARE and self._jumpscare_pixmap:
+            painter = QPainter(self)
+            scaled = self._jumpscare_pixmap.scaled(
+                self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation
+            )
+            x = (self.width() - scaled.width()) // 2
+            y = (self.height() - scaled.height()) // 2
+            painter.drawPixmap(x, y, scaled)
+            painter.end()
             return
 
         painter = QPainter(self)
@@ -428,4 +477,5 @@ class SkillCheckOverlay(QWidget):
         self._anim_timer.stop()
         self._timeout_timer.stop()
         self._result_timer.stop()
+        self._jumpscare_timer.stop()
         self._warning_timer.stop()

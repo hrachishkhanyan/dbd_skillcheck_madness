@@ -23,6 +23,7 @@ from config import (
     MOD_REVERSE,
     MOD_COULROPHOBIA,
     MOD_INSANITY,
+    MOD_CHILL,
 )
 
 # ──────────────────────────── Dark stylesheet ────────────────────────────
@@ -213,12 +214,20 @@ class MainWindow(QMainWindow):
             (MOD_REVERSE, "🔹 Reverse — counter-clockwise, great first"),
             (MOD_COULROPHOBIA, "🔹 Coulrophobia — very fast"),
             (MOD_INSANITY, "🔹 Madness — random position & direction"),
+            (MOD_CHILL, "🔹 Chill — very rare skill checks (~5 min)"),
         ]
         for mod_id, label in modifiers:
             cb = QCheckBox(label)
             cb.toggled.connect(lambda checked, m=mod_id: self._on_mod_toggled(m, checked))
             mod_lay.addWidget(cb)
             self._mod_checks[mod_id] = cb
+
+        # Jumpscare toggle (separate from game modifiers)
+        mod_lay.addSpacing(6)
+        self._jumpscare_cb = QCheckBox("💀 Jumpscare — fullscreen scare on fail")
+        self._jumpscare_cb.toggled.connect(self._on_jumpscare_toggled)
+        mod_lay.addWidget(self._jumpscare_cb)
+
         root.addWidget(mod_box)
 
         # ── Settings ──────────────────────────────────────────
@@ -351,6 +360,9 @@ class MainWindow(QMainWindow):
             self.engine.active_modifiers.add(mod_id)
         else:
             self.engine.active_modifiers.discard(mod_id)
+
+    def _on_jumpscare_toggled(self, checked):
+        self.overlay.jumpscare_enabled = checked
 
     def _on_speed(self, value):
         mult = value / 100.0

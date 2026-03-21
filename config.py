@@ -25,6 +25,7 @@ ANIMATION_INTERVAL = 1000 // ANIMATION_FPS  # ~16 ms
 # Result display
 RESULT_DISPLAY_MS = 600
 WARNING_DURATION_MS = 200
+JUMPSCARE_DISPLAY_MS = 1200
 
 # Merciless Storm
 STORM_DURATION_MS = 10000       # 10 seconds of continuous checks
@@ -38,12 +39,17 @@ COULROPHOBIA_SPEED_MULT = 2.0    # how much faster skill checks become
 MADNESS_OFFSET_RANGE = 250       # max px offset from center
 MADNESS_DIRECTION_FLIP_CHANCE = 0.5
 
+# Chill
+CHILL_MIN_INTERVAL = 240.0       # ~4 minutes
+CHILL_MAX_INTERVAL = 360.0       # ~6 minutes
+
 # Modifier IDs
 MOD_MERCILESS_STORM = "merciless_storm"
 MOD_UNNERVING_PRESENCE = "unnerving_presence"
 MOD_REVERSE = "reverse"
 MOD_COULROPHOBIA = "coulrophobia"
 MOD_INSANITY = "insanity"
+MOD_CHILL = "chill"
 
 # Colors (R, G, B, A)
 COLOR_RING_BG = (60, 60, 70, 255)
