@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QFileDialog,
     QApplication,
+    QSpinBox,
 )
 
 from config import (
@@ -170,7 +171,7 @@ class MainWindow(QMainWindow):
         self.stats = stats
 
         self.setWindowTitle("SkillCheck Trainer")
-        self.setFixedSize(420, 740)
+        self.setFixedSize(420, 810)
         icon = _make_app_icon()
         self.setWindowIcon(icon)
         self.setStyleSheet(STYLESHEET)
@@ -212,6 +213,29 @@ class MainWindow(QMainWindow):
 
         self.start_btn.clicked.connect(self._on_start)
         self.stop_btn.clicked.connect(self._on_stop)
+
+        # ── Delay Timer ────────────────────────────────────────
+        delay_box = QGroupBox("Start Delay")
+        delay_lay = QHBoxLayout(delay_box)
+        self._delay_cb = QCheckBox("Enable")
+        delay_lay.addWidget(self._delay_cb)
+        delay_lay.addWidget(QLabel("Delay:"))
+        self._delay_spin = QSpinBox()
+        self._delay_spin.setRange(1, 600)
+        self._delay_spin.setValue(60)
+        self._delay_spin.setSuffix(" sec")
+        self._delay_spin.setMinimumWidth(90)
+        delay_lay.addWidget(self._delay_spin)
+        delay_lay.addStretch()
+        self._countdown_label = QLabel("")
+        self._countdown_label.setStyleSheet("color: #ffcc00; font-weight: bold; font-size: 13px;")
+        delay_lay.addWidget(self._countdown_label)
+        root.addWidget(delay_box)
+
+        self._delay_timer = QTimer(self)
+        self._delay_timer.setInterval(1000)
+        self._delay_timer.timeout.connect(self._on_delay_tick)
+        self._delay_remaining = 0
 
         # ── Modifiers ─────────────────────────────────────────
         mod_box = QGroupBox("Modifiers")
@@ -354,17 +378,36 @@ class MainWindow(QMainWindow):
     # Slots
     # ==================================================================
     def _on_start(self):
+        if self._delay_cb.isChecked():
+            self._delay_remaining = self._delay_spin.value()
+            self._countdown_label.setText(f"{self._delay_remaining}s")
+            self._delay_timer.start()
+            self.start_btn.setEnabled(False)
+            self.stop_btn.setEnabled(True)
+            return
         self.engine.start()
         self.listener.active = True
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
 
     def _on_stop(self):
+        self._delay_timer.stop()
+        self._countdown_label.setText("")
         self.engine.stop()
         self.overlay.cancel()
         self.listener.active = False
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
+
+    def _on_delay_tick(self):
+        self._delay_remaining -= 1
+        if self._delay_remaining <= 0:
+            self._delay_timer.stop()
+            self._countdown_label.setText("")
+            self.engine.start()
+            self.listener.active = True
+            return
+        self._countdown_label.setText(f"{self._delay_remaining}s")
 
     def _on_mod_toggled(self, mod_id, checked):
         if checked:
