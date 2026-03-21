@@ -56,6 +56,11 @@ cd SkillcheckApp
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
+or use Conda to handle the virtual environment
+```powershell
+conda create -n "skillchecks" python=3.11
+conda activate skillchecks
+```
 
 ### 2. Install dependencies
 
