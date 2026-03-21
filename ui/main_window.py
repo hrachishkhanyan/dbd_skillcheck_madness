@@ -1,3 +1,5 @@
+import os
+
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
 from PySide6.QtWidgets import (
@@ -125,7 +127,8 @@ QComboBox {
     background-color: #1e1e42;
     border: 1px solid #3a3a6e;
     border-radius: 4px;
-    padding: 4px 8px;
+    padding: 6px 10px;
+    min-height: 16px;
     color: #d0d0ee;
     font-size: 12px;
 }
@@ -180,10 +183,16 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(14, 14, 14, 14)
 
         # ── Title ─────────────────────────────────────────────
-        title = QLabel("⚡  SkillCheck Trainer")
+        title_row = QHBoxLayout()
+        title_row.setAlignment(Qt.AlignCenter)
+        _logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
+        logo_label = QLabel()
+        logo_label.setPixmap(QPixmap(_logo_path).scaled(28, 28, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        title_row.addWidget(logo_label)
+        title = QLabel("SkillCheck Trainer")
         title.setStyleSheet("font-size:20px; font-weight:bold; color:#ffffff;")
-        title.setAlignment(Qt.AlignCenter)
-        root.addWidget(title)
+        title_row.addWidget(title)
+        root.addLayout(title_row)
 
         subtitle = QLabel("Dead by Daylight–style skill checks … everywhere")
         subtitle.setStyleSheet("font-size:11px; color:#888;")
@@ -265,6 +274,8 @@ class MainWindow(QMainWindow):
         key_row = QHBoxLayout()
         key_row.addWidget(QLabel("Hotkey:"))
         self.key_combo = QComboBox()
+        self.key_combo.setMinimumWidth(140)
+        self.key_combo.setMinimumHeight(32)
         keys = (
             ["SPACE"]
             + [chr(c) for c in range(ord("A"), ord("Z") + 1)]

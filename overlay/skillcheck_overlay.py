@@ -22,6 +22,7 @@ from config import (
     RING_WIDTH,
     ANIMATION_INTERVAL,
     RESULT_DISPLAY_MS,
+    FAIL_ANIMATION_MS,
     WARNING_DURATION_MS,
     SKILL_CHECK_TIMEOUT_BUFFER,
     JUMPSCARE_DISPLAY_MS,
@@ -47,9 +48,7 @@ class SkillCheckOverlay(QWidget):
     _CLR_GREAT = QColor(255, 255, 255, 255)      # great zone arc (brightest)
     _CLR_POINTER = QColor(220, 40, 40, 255)      # red needle
     _CLR_BG = QColor(10, 10, 20, 140)            # background glow
-    _CLR_RESULT_GREAT = QColor(255, 215, 0)
-    _CLR_RESULT_GOOD = QColor(200, 200, 60)
-    _CLR_RESULT_FAIL = QColor(220, 50, 50)
+    _CLR_RESULT_FAIL = QColor(220, 50, 50)       # fail red tint target
     _RING_W = 3                                   # base ring line width
     _ZONE_W = 10                                  # zone arc line width
     _POINTER_W = 3                                # pointer line width
@@ -85,10 +84,10 @@ class SkillCheckOverlay(QWidget):
         self._last_frame = 0.0
         self._current_speed = 0.0
         self._current_clockwise = True
-        self._result_text = ""
-        self._result_color = QColor(255, 255, 255)
         self._pending_result = ""
         self._pending_reaction = 0.0
+        self._fail_progress = 0.0
+        self._fail_start_time = 0.0
 
         # ---- Timers ----
         self._anim_timer = QTimer(self)
@@ -219,24 +218,25 @@ class SkillCheckOverlay(QWidget):
         self._state = _State.RESULT
         self._pending_result = result
         self._pending_reaction = reaction_ms
-        self._result_text = result.upper()
-
-        if result == "great":
-            self._result_color = self._CLR_RESULT_GREAT
-        elif result == "good":
-            self._result_color = self._CLR_RESULT_GOOD
-        else:
-            self._result_color = self._CLR_RESULT_FAIL
 
         if self._sounds:
             self._sounds.play_result(result)
 
+        is_fail = result in ("fail", "miss")
+        if is_fail:
+            # Start gradual red animation
+            self._fail_progress = 0.0
+            self._fail_start_time = time.perf_counter()
+            self._anim_timer.start(ANIMATION_INTERVAL)
+            display_ms = 150 if (self._config and self._config.storm) else FAIL_ANIMATION_MS
+        else:
+            display_ms = 150 if (self._config and self._config.storm) else RESULT_DISPLAY_MS
+
         self.update()
-        # Shorter flash during storm for continuous feel
-        display_ms = 150 if (self._config and self._config.storm) else RESULT_DISPLAY_MS
         self._result_timer.start(display_ms)
 
     def _on_result_done(self):
+        self._anim_timer.stop()
         result = self._pending_result
         reaction = self._pending_reaction
         is_storm = self._config and self._config.storm
@@ -275,9 +275,15 @@ class SkillCheckOverlay(QWidget):
         dt = now - self._last_frame
         self._last_frame = now
 
-        direction = 1.0 if self._current_clockwise else -1.0
-        self._pointer_angle += self._current_speed * dt * direction
-        self._pointer_angle %= 360
+        if self._state == _State.RESULT and self._pending_result in ("fail", "miss"):
+            # Update fail-red progress (0 -> 1)
+            elapsed = (now - self._fail_start_time) * 1000
+            duration = 150 if (self._config and self._config.storm) else FAIL_ANIMATION_MS
+            self._fail_progress = min(elapsed / duration, 1.0)
+        else:
+            direction = 1.0 if self._current_clockwise else -1.0
+            self._pointer_angle += self._current_speed * dt * direction
+            self._pointer_angle %= 360
 
         self.update()
 
@@ -369,9 +375,17 @@ class SkillCheckOverlay(QWidget):
         painter.setPen(Qt.NoPen)
         painter.drawEllipse(QPointF(cx, cy), radius + 80, radius + 80)
 
+        # -- Determine if we're in a fail animation --
+        _is_fail_anim = (
+            self._state == _State.RESULT
+            and self._pending_result in ("fail", "miss")
+        )
+        _fp = self._fail_progress if _is_fail_anim else 0.0
+
         # -- Base ring (thin circle) --
         rect = QRectF(cx - radius, cy - radius, radius * 2, radius * 2)
-        pen = QPen(self._CLR_RING, self._RING_W, Qt.SolidLine)
+        ring_clr = self._lerp_color(self._CLR_RING, self._CLR_RESULT_FAIL, _fp)
+        pen = QPen(ring_clr, self._RING_W, Qt.SolidLine)
         painter.setPen(pen)
         painter.setBrush(Qt.NoBrush)
         painter.drawEllipse(rect)
@@ -396,13 +410,15 @@ class SkillCheckOverlay(QWidget):
             qt_great_span = -great_size * 16
 
             # -- Good zone arc (thicker, brighter) --
-            pen = QPen(self._CLR_GOOD, self._ZONE_W, Qt.SolidLine, Qt.FlatCap)
+            good_clr = self._lerp_color(self._CLR_GOOD, self._CLR_RESULT_FAIL, _fp)
+            pen = QPen(good_clr, self._ZONE_W, Qt.SolidLine, Qt.FlatCap)
             painter.setPen(pen)
             painter.drawArc(rect, int(qt_good_start), int(qt_good_span))
 
             # -- Great zone arc (brightest, slightly thicker) --
             if great_size > 0:
-                pen = QPen(self._CLR_GREAT, self._ZONE_W + 2, Qt.SolidLine, Qt.FlatCap)
+                great_clr = self._lerp_color(self._CLR_GREAT, self._CLR_RESULT_FAIL, _fp)
+                pen = QPen(great_clr, self._ZONE_W + 2, Qt.SolidLine, Qt.FlatCap)
                 painter.setPen(pen)
                 painter.drawArc(rect, int(qt_great_start), int(qt_great_span))
 
@@ -411,7 +427,8 @@ class SkillCheckOverlay(QWidget):
             end_rad = math.radians(end_angle)
             mx = cx + radius * math.sin(end_rad)
             my = cy - radius * math.cos(end_rad)
-            painter.setBrush(QBrush(QColor(255, 255, 255, 220)))
+            notch_clr = self._lerp_color(QColor(255, 255, 255, 220), self._CLR_RESULT_FAIL, _fp)
+            painter.setBrush(QBrush(notch_clr))
             painter.setPen(Qt.NoPen)
             painter.drawEllipse(QPointF(mx, my), 5, 5)
 
@@ -433,14 +450,6 @@ class SkillCheckOverlay(QWidget):
 
         # -- Hotkey label (center pill) --
         self._draw_hotkey_label(painter, cx, cy)
-
-        # -- Result text --
-        if self._state == _State.RESULT:
-            font = QFont("Segoe UI", 22, QFont.Bold)
-            painter.setFont(font)
-            painter.setPen(self._result_color)
-            text_rect = QRectF(cx - 120, cy + radius + 20, 240, 40)
-            painter.drawText(text_rect, Qt.AlignCenter, self._result_text)
 
         painter.end()
 
@@ -473,6 +482,16 @@ class SkillCheckOverlay(QWidget):
     # ==================================================================
     # Helpers
     # ==================================================================
+    @staticmethod
+    def _lerp_color(c1: QColor, c2: QColor, t: float) -> QColor:
+        """Linearly interpolate between two QColors by factor *t* (0..1)."""
+        return QColor(
+            int(c1.red()   + (c2.red()   - c1.red())   * t),
+            int(c1.green() + (c2.green() - c1.green()) * t),
+            int(c1.blue()  + (c2.blue()  - c1.blue())  * t),
+            int(c1.alpha() + (c2.alpha() - c1.alpha()) * t),
+        )
+
     def _stop_all_timers(self):
         self._anim_timer.stop()
         self._timeout_timer.stop()
