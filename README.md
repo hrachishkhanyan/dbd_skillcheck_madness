@@ -13,7 +13,7 @@ SkillCheck Trainer brings Dead by Daylight–style skill checks to your desktop 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/ce22f50e-a8da-4159-8bf7-0d4b43963972" alt="Skill Check Demo 1" width="400">
   &nbsp;&nbsp;
-  <img src="https://drive.usercontent.google.com/download?id=1n2j2lDaqd8jb4Vt0T1PGiqcgeagtO5SN&export=view&authuser=0" alt="Skill Check Demo 2" width="400">
+  <img src="https://github.com/user-attachments/assets/f268102b-85b9-44c9-99b7-29b8393cfd44" alt="Skill Check Demo 2" width="400">
 </p>
 
 > *"I just wanted to practice skill checks"* — you, explaining to your manager why there's a red overlay on your screen during a Zoom call.
