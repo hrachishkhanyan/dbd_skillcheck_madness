@@ -43,6 +43,7 @@ Because normal skill checks are for survivors who haven't prestiged.
 | **Reverse** | Counter-clockwise rotation with the great zone flipped to the front. Your muscle memory is now useless. |
 | **Coulrophobia** | *Very* fast. Like, unreasonably fast. Clown main energy. |
 | **Madness** | Skill checks pop up at random positions on screen with random direction. Doctor says hello. |
+| **Chill** | Skill checks appear rarely in case you would like to have a little break. They can still take you by surprise. |
 
 Modifiers stack — enable several at once if you enjoy pain.
 
