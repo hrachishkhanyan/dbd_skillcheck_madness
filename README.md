@@ -44,6 +44,7 @@ Because normal skill checks are for survivors who haven't prestiged.
 | **Coulrophobia** | *Very* fast. Like, unreasonably fast. Clown main energy. |
 | **Madness** | Skill checks pop up at random positions on screen with random direction. Doctor says hello. |
 | **Chill** | Skill checks appear rarely in case you would like to have a little break. They can still take you by surprise. |
+| 💀 **Jumpscare** | Fail a skill check and get punished with a fullscreen scare flashing over your desktop. Hope your volume isn't up. Hope your boss isn't behind you. |
 
 Modifiers stack — enable several at once if you enjoy pain.
 
