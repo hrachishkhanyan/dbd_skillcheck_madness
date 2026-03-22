@@ -1,11 +1,13 @@
 """Sound manager for SkillCheck Trainer — plays cue and result sounds."""
 
 import os
+import sys
 
 from PySide6.QtCore import QUrl, QObject
 from PySide6.QtMultimedia import QSoundEffect, QMediaPlayer, QAudioOutput
 
-_SOUNDS_DIR = os.path.dirname(os.path.abspath(__file__))
+_SOUNDS_DIR = os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__))), "sounds") \
+    if getattr(sys, '_MEIPASS', None) else os.path.dirname(os.path.abspath(__file__))
 
 
 class SoundManager(QObject):

@@ -90,7 +90,11 @@ Click **▶ START**, go about your day, and try not to flinch when the cue sound
 
 ```powershell
 pip install pyinstaller
-pyinstaller --onefile --windowed --name SkillCheckTrainer --icon=NUL main.py
+pyinstaller --onefile --windowed --name SkillCheckTrainer `
+  --add-data "sounds\*.wav;sounds" `
+  --add-data "sounds\*.mp3;sounds" `
+  --add-data "overlay\jumpscare.png;overlay" `
+  main.py
 ```
 
 Find your `.exe` in the `dist/` folder. Distribute to coworkers at your own risk.

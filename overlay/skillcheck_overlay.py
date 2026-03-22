@@ -1,5 +1,6 @@
 import math
 import os
+import sys
 import time
 import ctypes
 from enum import Enum, auto
@@ -60,7 +61,8 @@ class SkillCheckOverlay(QWidget):
         self.jumpscare_enabled: bool = False
 
         # Load jumpscare image
-        _img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jumpscare.png")
+        _base = os.path.join(sys._MEIPASS, "overlay") if getattr(sys, '_MEIPASS', None) else os.path.dirname(os.path.abspath(__file__))
+        _img_path = os.path.join(_base, "jumpscare.png")
         self._jumpscare_pixmap = QPixmap(_img_path) if os.path.isfile(_img_path) else None
         # Window behaviour – frameless, topmost, no taskbar entry
         self.setWindowFlags(
