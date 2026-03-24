@@ -1,4 +1,4 @@
-# ⚡ SkillCheck Trainer
+# ⚡ SkillCheck madness
 
 ### *Because spreadsheets don't have skill checks. Yet.*
 
